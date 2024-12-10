@@ -1,0 +1,153 @@
+﻿@page "/add-task"
+@using Todo.Models
+@using Todo.Services
+@inject ITaskService taskService
+@inject IUserService userService
+
+<h3>Add Task</h3>
+
+<div>
+    <form>
+        <div>
+            <label>Task ID:</label>
+            <input type="text" @bind="newTask.TaskId" />
+        </div>
+        <div>
+            <label>Task Title:</label>
+            <input type="text" @bind="newTask.Title" />
+        </div>
+        <div>
+            <label>Description:</label>
+            <textarea @bind="newTask.Description"></textarea>
+        </div>
+        <div>
+            <label>Due Date:</label>
+            <input type="date" @bind="newTask.DueDate" />
+        </div>
+        <div>
+            <label>Priority:</label>
+            <select @bind="newTask.Priority">
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+            </select>
+        </div>
+        <div>
+            <label>Status:</label>
+            <select @bind="newTask.Status">
+                <option value="Pending">Pending</option>
+                <option value="InProgress">In Progress</option>
+                <option value="Completed">Completed</option>
+            </select>
+        </div>
+        <div>
+            <label>Assigned To:</label>
+            <select @bind="newTask.AssignedTo">
+                <option value="">Select User</option>
+                @foreach (var user in users)
+                {
+                    <option value="@user.Name">@user.Name</option>
+                }
+            </select>
+        </div>
+        <button type="button" @onclick="AddNewTask">Add Task</button>
+    </form>
+</div>
+
+@if (errorMessage != null)
+{
+    <p class="error-message">@errorMessage</p>
+}
+
+<h3>Retrieve Task Information</h3>
+
+<div>
+    <label>Enter Task ID to Retrieve Info:</label>
+    <input @bind="searchTaskId" />
+    <button type="button" @onclick="GetTaskInfo">Get Task Info</button>
+</div>
+
+@if (retrievedTask != null)
+{
+    <h4>Task Details:</h4>
+    <p><strong>Title:</strong> @retrievedTask.Title</p>
+    <p><strong>Description:</strong> @retrievedTask.Description</p>
+    <p><strong>Due Date:</strong> @retrievedTask.DueDate</p>
+    <p><strong>Priority:</strong> @retrievedTask.Priority</p>
+    <p><strong>Status:</strong> @retrievedTask.Status</p>
+    <p><strong>Assigned To:</strong> @retrievedTask.AssignedTo</p> <!-- This will display the UserName -->
+}
+
+@code {
+    private Tasks newTask = new Tasks();
+    private List<User> users = new List<User>(); // Ensure this is initialized
+    private string errorMessage;
+
+    // New field for searching task
+    private int searchTaskId;
+
+    // Field to hold retrieved task information
+    private Tasks retrievedTask;
+
+    // Ensure data is loaded on initialization
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Load users asynchronously
+            users = await userService.LoadUsersAsync();
+            StateHasChanged(); // Ensure UI is re-rendered after users are loaded
+            errorMessage = null; // Clear any error messages
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load users: {ex.Message}";
+            Console.WriteLine(errorMessage); // Log for debugging
+        }
+    }
+
+    private async Task AddNewTask()
+    {
+        try
+        {
+            var existingTasks = await taskService.LoadTasksAsync();
+            if (existingTasks.Any(t => t.TaskId == newTask.TaskId))
+            {
+                errorMessage = "A task with this ID already exists.";
+                return;
+            }
+
+            await taskService.SaveTaskAsync(newTask);
+            newTask = new Tasks(); // Reset the task after saving
+            errorMessage = null; // Clear any previous error messages
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred while adding the task: {ex.Message}";
+            Console.WriteLine(errorMessage); // Log for debugging
+        }
+    }
+
+    private async Task GetTaskInfo()
+    {
+        try
+        {
+            var tasks = await taskService.LoadTasksAsync();
+            retrievedTask = tasks.FirstOrDefault(t => t.TaskId == searchTaskId);
+
+            if (retrievedTask == null)
+            {
+                errorMessage = "No task found with this ID.";
+            }
+            else
+            {
+                errorMessage = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred while retrieving the task: {ex.Message}";
+            Console.WriteLine(errorMessage);
+        }
+    }
+}

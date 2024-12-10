@@ -16,13 +16,12 @@ namespace Todo
                 });
 
             builder.Services.AddMauiBlazorWebView();
-
-            //registering User Services
             builder.Services.AddTransient<IUserService, UserService>();
+            builder.Services.AddTransient<ITaskService, TaskService>();
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
 #endif
 
             return builder.Build();
